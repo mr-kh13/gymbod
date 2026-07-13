@@ -1,19 +1,7 @@
 {
-  "version": "0.8.15",
-  "integration_state_schema": 1,
-  "installed_integrations": [
-    "codex"
-  ],
-  "integration_settings": {
-    "codex": {
-      "script": "ps",
-      "raw_options": "--skills",
-      "parsed_options": {
-        "skills": true
-      },
-      "invoke_separator": "-"
-    }
-  },
-  "integration": "codex",
-  "default_integration": "codex"
+  "integration": "claude",
+  "version": "0.5.1",
+  "scripts": {
+    "update-context": ".specify/integrations/claude/scripts/update-context.ps1"
+  }
 }
