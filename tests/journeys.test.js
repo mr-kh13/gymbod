@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { createWorkout, discardSession, finishSession, historyItems, recordSet, sessionDetail, startSession } from "../src/domain.js";
+import { createWorkout, deleteWorkout, discardSession, duplicateWorkout, finishSession, historyItems, recordSet, sessionDetail, startSession, updateWorkout } from "../src/domain.js";
 import { createDefaultState } from "../src/storage.js";
 import { renderApp } from "../src/ui.js";
 
@@ -109,4 +109,64 @@ test("corrupted data renders an explicit recovery action", () => {
   const output = renderApp({ state: null, view: "plans", recoveryError: new Error("bad data") });
   assert.match(output, /data-action="reset-data"/);
   assert.match(output, /left the unreadable data untouched/);
+});
+
+test("duplicating a workout adds an independent copy with a default name and matching exercises", () => {
+  const state = withWorkout();
+  const { state: next, workout: copy } = duplicateWorkout(state, "w1", { id: "w2" });
+  assert.equal(next.workouts.length, 2);
+  assert.equal(copy.name, "Copy of Push day");
+  assert.deepEqual(
+    copy.exercises.map((e) => e.exerciseId),
+    state.workouts[0].exercises.map((e) => e.exerciseId)
+  );
+  assert.doesNotThrow(() => startSession(next, "w2"));
+});
+
+test("renders a Duplicate button for each saved workout card", () => {
+  const state = withWorkout();
+  const html = renderApp({ state, view: "plans" });
+  assert.match(html, /data-action="duplicate-workout"/);
+});
+
+test("renders inline rename input when renamingId matches a workout", () => {
+  const state = withWorkout();
+  const { state: duped, workout: copy } = duplicateWorkout(state, "w1", { id: "w2" });
+  const html = renderApp({ state: duped, view: "plans", renamingId: copy.id });
+  assert.match(html, /data-rename-input/);
+  assert.match(html, /data-action="confirm-rename"/);
+  assert.match(html, /data-action="cancel-rename"/);
+  assert.doesNotMatch(html, new RegExp(`data-action="duplicate-workout"[^>]*data-id="${copy.id}"`));
+});
+
+test("rename with a valid custom name updates the duplicate without affecting the source", () => {
+  const state = withWorkout();
+  const { state: duped, workout: copy } = duplicateWorkout(state, "w1", { id: "w2" });
+  const { state: renamed, errors } = updateWorkout(duped, copy.id, { name: "Heavy push", exercises: copy.exercises });
+  assert.equal(errors.length, 0);
+  assert.equal(renamed.workouts.find((w) => w.id === copy.id).name, "Heavy push");
+  assert.equal(renamed.workouts.find((w) => w.id === "w1").name, "Push day");
+});
+
+test("rename rejects an empty name and leaves the duplicate unchanged", () => {
+  const state = withWorkout();
+  const { state: duped, workout: copy } = duplicateWorkout(state, "w1", { id: "w2" });
+  const { errors } = updateWorkout(duped, copy.id, { name: "", exercises: copy.exercises });
+  assert.ok(errors.length > 0);
+  assert.equal(duped.workouts.find((w) => w.id === copy.id).name, copy.name);
+});
+
+test("editing the duplicate and deleting the source leaves the duplicate intact and startable", () => {
+  const state = withWorkout();
+  const { state: duped, workout: copy } = duplicateWorkout(state, "w1", { id: "w2" });
+  const { state: edited } = updateWorkout(duped, copy.id, {
+    name: copy.name,
+    exercises: [{ exerciseId: "bench-press", sets: 5, targetReps: 3 }]
+  });
+  assert.equal(edited.workouts.find((w) => w.id === "w1").exercises[0].sets, 2);
+  const afterDelete = deleteWorkout(edited, "w1");
+  const remaining = afterDelete.workouts.find((w) => w.id === copy.id);
+  assert.ok(remaining);
+  assert.equal(remaining.exercises[0].sets, 5);
+  assert.doesNotThrow(() => startSession(afterDelete, copy.id));
 });

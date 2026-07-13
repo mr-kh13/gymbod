@@ -82,6 +82,7 @@ h2 { letter-spacing: -.025em; }
 .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr)); gap: 1rem; }
 .workout-card { min-height: 260px; display: flex; flex-direction: column; justify-content: space-between; gap: 2rem; padding: 1.5rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
 .workout-card p:not(.eyebrow) { color: var(--muted); line-height: 1.6; }
+.rename-input { width: 100%; min-height: 46px; padding: .65rem .75rem; border: 1px solid #aaa398; border-radius: 10px; background: white; color: var(--ink); font-size: 1.25rem; font-weight: 700; }
 .card-actions, .form-actions, .row-actions { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
 .text-button { min-height: 44px; padding-inline: .7rem; background: transparent; color: var(--accent-dark); }
 .text-button:hover { background: var(--accent-soft); }

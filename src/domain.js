@@ -6,7 +6,7 @@ const makeId = () => globalThis.crypto?.randomUUID?.() ?? `id-${Date.now()}-${Ma
 export function validateWorkout(draft, catalog = EXERCISES) {
   const errors = [];
   if (!String(draft?.name ?? "").trim()) errors.push({ field: "name", message: "Enter a workout name." });
-  else if (String(draft.name).trim().length > 60) errors.push({ field: "name", message: "Use 60 characters or fewer." });
+  else if (String(draft.name).trim().length > 50) errors.push({ field: "name", message: "Use 50 characters or fewer." });
 
   const exercises = Array.isArray(draft?.exercises) ? draft.exercises : [];
   if (exercises.length === 0) errors.push({ field: "exercises", message: "Add at least one exercise." });
@@ -57,6 +57,29 @@ export function updateWorkout(state, workoutId, draft, options = {}) {
 export function deleteWorkout(state, workoutId) {
   if (state.activeSession?.workoutId === workoutId) throw new Error("Finish or discard the active session before deleting this workout.");
   return { ...state, workouts: state.workouts.filter((workout) => workout.id !== workoutId) };
+}
+
+export function duplicateWorkout(state, workoutId, options = {}) {
+  const source = state.workouts.find((w) => w.id === workoutId);
+  if (!source) throw new Error("Workout not found.");
+  const existing = new Set(state.workouts.map((w) => w.name));
+  const base = `Copy of ${source.name}`;
+  let name = base.slice(0, 50);
+  if (existing.has(name)) {
+    for (let n = 2; ; n++) {
+      const candidate = `${base} (${n})`.slice(0, 50);
+      if (!existing.has(candidate)) { name = candidate; break; }
+    }
+  }
+  const now = options.now ?? new Date().toISOString();
+  const workout = {
+    id: options.id ?? makeId(),
+    name,
+    exercises: source.exercises.map((item) => ({ ...item })),
+    createdAt: now,
+    updatedAt: now
+  };
+  return { state: { ...state, workouts: [...state.workouts, workout] }, workout };
 }
 
 export function workoutSummary(workout) {

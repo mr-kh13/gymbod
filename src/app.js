@@ -1,5 +1,5 @@
 import { EXERCISES } from "./catalog.js";
-import { createWorkout, deleteWorkout, discardSession, finishSession, recordSet, startSession, updateWorkout } from "./domain.js";
+import { createWorkout, deleteWorkout, discardSession, duplicateWorkout, finishSession, recordSet, startSession, updateWorkout } from "./domain.js";
 import { createPlannerRepository, StorageCorruptionError } from "./storage.js";
 import { renderApp } from "./ui.js";
 
@@ -12,6 +12,7 @@ let editor = null;
 let errors = [];
 let lastSummary = null;
 let selectedHistory = null;
+let renamingId = null;
 
 try { state = repository.load(); }
 catch (error) { if (!(error instanceof StorageCorruptionError)) throw error; recoveryError = error; state = null; }
@@ -24,7 +25,7 @@ function announce(message) { status.textContent = ""; requestAnimationFrame(() =
 function persist(message) { repository.save(state); if (message) announce(message); }
 function render() {
   const view = currentView();
-  app.innerHTML = renderApp({ state, view, recoveryError, editor, errors, lastSummary, selectedHistory });
+  app.innerHTML = renderApp({ state, view, recoveryError, editor, errors, lastSummary, selectedHistory, renamingId });
   app.setAttribute("aria-busy", "false");
   document.querySelectorAll("[data-nav]").forEach((link) => link.dataset.nav === view ? link.setAttribute("aria-current", "page") : link.removeAttribute("aria-current"));
   if (errors.length) app.querySelector("[data-error-summary]")?.focus();
@@ -69,6 +70,9 @@ app.addEventListener("click", (event) => {
   if (action === "add-exercise") { syncEditorFromForm(); const used = new Set(editor.exercises.map((item) => item.exerciseId)); const exercise = EXERCISES.find((item) => !used.has(item.id)); if (exercise) editor.exercises.push({ exerciseId: exercise.id, sets: 3, targetReps: 8 }); render(); }
   if (action === "remove-exercise") { syncEditorFromForm(); editor.exercises.splice(Number(index), 1); render(); }
   if (action === "move-exercise") { syncEditorFromForm(); const from = Number(index); const to = direction === "up" ? from - 1 : from + 1; [editor.exercises[from], editor.exercises[to]] = [editor.exercises[to], editor.exercises[from]]; render(); }
+  if (action === "duplicate-workout") { try { const result = duplicateWorkout(state, id); state = result.state; renamingId = result.workout.id; persist("Workout duplicated."); render(); app.querySelector(`[data-rename-input][data-id="${renamingId}"]`)?.focus(); } catch (error) { announce(error.message); } }
+  if (action === "confirm-rename") { const input = app.querySelector(`[data-rename-input][data-id="${id}"]`); const name = input?.value ?? ""; const workout = state.workouts.find((w) => w.id === id); const result = updateWorkout(state, id, { name, exercises: workout.exercises }); if (result.errors.length) { announce(result.errors[0].message); input?.focus(); return; } state = result.state; renamingId = null; persist("Workout renamed."); render(); }
+  if (action === "cancel-rename") { renamingId = null; render(); }
   if (action === "start-workout") { try { state = startSession(state, id); persist("Session started."); lastSummary = null; location.hash = "session"; render(); } catch (error) { announce(error.message); if (state.activeSession) location.hash = "session"; } }
   if (action === "finish-session") { try { const result = finishSession(state); state = result.state; lastSummary = result.summary; persist("Session finished and added to history."); render(); } catch (error) { announce(error.message); } }
   if (action === "discard-session" && window.confirm("Discard this session? Recorded progress will be lost.")) { state = discardSession(state); lastSummary = null; persist("Session discarded."); render(); }
@@ -91,5 +95,5 @@ app.addEventListener("change", (event) => {
   } catch (error) { announce(error.message); field.focus(); }
 });
 
-window.addEventListener("hashchange", () => { editor = null; errors = []; selectedHistory = null; if (currentView() !== "session") lastSummary = null; render(); });
+window.addEventListener("hashchange", () => { editor = null; errors = []; selectedHistory = null; renamingId = null; if (currentView() !== "session") lastSummary = null; render(); });
 render();
