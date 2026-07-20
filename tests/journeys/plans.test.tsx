@@ -186,4 +186,35 @@ describe('Plans — US1: Plan a workout', () => {
     const editDurationInput = screen.getByLabelText(/duration/i) as HTMLInputElement;
     expect(editDurationInput.value).toBe('60');
   });
+
+  it('[T026] sets rest times on exercise and persists through edit cycle', async () => {
+    const user = userEvent.setup();
+    renderAt('/plans');
+
+    await waitFor(() => screen.getByText(/build your first session/i));
+    await user.click(screen.getByRole('button', { name: /create workout/i }));
+
+    const nameInput = await screen.findByPlaceholderText(/e\.g\. push day/i);
+    await user.type(nameInput, 'Push day');
+
+    // Enter rest times
+    const restBetweenInput = await screen.findByLabelText(/rest between sets/i) as HTMLInputElement;
+    await user.type(restBetweenInput, '90');
+
+    const restBeforeInput = await screen.findByLabelText(/rest before next/i) as HTMLInputElement;
+    await user.type(restBeforeInput, '120');
+
+    await user.click(screen.getByRole('button', { name: /save workout/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Push day')).toBeInTheDocument();
+    });
+
+    // Edit and verify rest times persist
+    await user.click(screen.getByRole('button', { name: /edit/i }));
+    const editRestBetweenInput = await screen.findByLabelText(/rest between sets/i) as HTMLInputElement;
+    const editRestBeforeInput = await screen.findByLabelText(/rest before next/i) as HTMLInputElement;
+    expect(editRestBetweenInput.value).toBe('90');
+    expect(editRestBeforeInput.value).toBe('120');
+  });
 });

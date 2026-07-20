@@ -247,3 +247,59 @@ describe('validateWorkout - timed exercises', () => {
     expect((result.workout?.exercises[0] as any).durationSecs).toBe(60);
   });
 });
+
+describe('validateWorkout - rest times', () => {
+  it('rejects invalid restBetweenSetsSecs values', () => {
+    const draft = {
+      id: null,
+      name: 'Test',
+      exercises: [{
+        kind: 'resistance' as const,
+        exerciseId: 'bench-press',
+        sets: 3,
+        targetReps: 8,
+        targetWeightKg: '',
+        restBetweenSetsSecs: '601',
+        restBeforeNextSecs: '',
+      }],
+    };
+    const errors = validateWorkout(draft, EXERCISES);
+    expect(errors.some((e) => e.field === 'exercises.0.restBetweenSetsSecs')).toBe(true);
+  });
+
+  it('accepts valid rest times 0-600', () => {
+    const draft = {
+      id: null,
+      name: 'Test',
+      exercises: [{
+        kind: 'resistance' as const,
+        exerciseId: 'bench-press',
+        sets: 3,
+        targetReps: 8,
+        targetWeightKg: '',
+        restBetweenSetsSecs: '90',
+        restBeforeNextSecs: '120',
+      }],
+    };
+    const errors = validateWorkout(draft, EXERCISES);
+    expect(errors.filter((e) => e.field.includes('restBetween') || e.field.includes('restBefore')).length).toBe(0);
+  });
+
+  it('accepts empty rest fields (not set)', () => {
+    const draft = {
+      id: null,
+      name: 'Test',
+      exercises: [{
+        kind: 'resistance' as const,
+        exerciseId: 'bench-press',
+        sets: 3,
+        targetReps: 8,
+        targetWeightKg: '',
+        restBetweenSetsSecs: '',
+        restBeforeNextSecs: '',
+      }],
+    };
+    const errors = validateWorkout(draft, EXERCISES);
+    expect(errors.filter((e) => e.field.includes('rest')).length).toBe(0);
+  });
+});

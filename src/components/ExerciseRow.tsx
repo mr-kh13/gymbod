@@ -127,6 +127,40 @@ export function ExerciseRow({
         </>
       )}
 
+      <label className="field">
+        <span>Rest between sets (s, optional)</span>
+        <input
+          type="number"
+          inputMode="numeric"
+          min={0}
+          max={600}
+          value={item.restBetweenSetsSecs}
+          aria-invalid={!!errorFor(errors, `exercises.${index}.restBetweenSetsSecs`)}
+          aria-describedby={errorFor(errors, `exercises.${index}.restBetweenSetsSecs`) ? errId('restBetweenSetsSecs') : undefined}
+          onChange={(e) => onChange(index, { ...item, restBetweenSetsSecs: e.target.value })}
+        />
+        {errorFor(errors, `exercises.${index}.restBetweenSetsSecs`) && (
+          <small className="field-error" id={errId('restBetweenSetsSecs')}>{errorFor(errors, `exercises.${index}.restBetweenSetsSecs`)}</small>
+        )}
+      </label>
+
+      <label className="field">
+        <span>Rest before next exercise (s, optional)</span>
+        <input
+          type="number"
+          inputMode="numeric"
+          min={0}
+          max={600}
+          value={item.restBeforeNextSecs}
+          aria-invalid={!!errorFor(errors, `exercises.${index}.restBeforeNextSecs`)}
+          aria-describedby={errorFor(errors, `exercises.${index}.restBeforeNextSecs`) ? errId('restBeforeNextSecs') : undefined}
+          onChange={(e) => onChange(index, { ...item, restBeforeNextSecs: e.target.value })}
+        />
+        {errorFor(errors, `exercises.${index}.restBeforeNextSecs`) && (
+          <small className="field-error" id={errId('restBeforeNextSecs')}>{errorFor(errors, `exercises.${index}.restBeforeNextSecs`)}</small>
+        )}
+      </label>
+
       {item.kind === 'timed' && (
         <label className="field">
           <span>Duration (s)</span>

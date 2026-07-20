@@ -103,6 +103,16 @@ function SessionDetailRoute() {
                   </div>
                 ))}
               </div>
+              {(exercise.restBetweenSetsSecs || exercise.restBeforeNextSecs) && (
+                <div className="rest-info">
+                  {exercise.restBetweenSetsSecs && (
+                    <span>Rest between sets: {exercise.restBetweenSetsSecs} s</span>
+                  )}
+                  {exercise.restBeforeNextSecs && (
+                    <span>Rest before next: {exercise.restBeforeNextSecs} s</span>
+                  )}
+                </div>
+              )}
             </section>
           );
         })}
