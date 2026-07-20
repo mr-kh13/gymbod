@@ -1,14 +1,16 @@
 import { useState } from 'react';
-import type { SetResult } from '../domain/types';
+import type { SetResult, SessionExercise } from '../domain/types';
 
 interface SetRowProps {
   result: SetResult;
-  targetReps: number;
+  exercise: SessionExercise;
   onChange: (values: Partial<SetResult>) => void;
 }
 
-export function SetRow({ result, targetReps, onChange }: SetRowProps) {
+export function SetRow({ result, exercise, onChange }: SetRowProps) {
   const [pulse, setPulse] = useState(false);
+
+  const targetReps = exercise.kind === 'resistance' ? exercise.targetReps : null;
 
   function handleChange(values: Partial<SetResult>) {
     if (values.completed !== undefined && values.completed !== result.completed) {
@@ -34,42 +36,47 @@ export function SetRow({ result, targetReps, onChange }: SetRowProps) {
         />
         <span>Set {result.setNumber}</span>
       </label>
-      <span className="target">Target {targetReps} reps</span>
-      <label className="compact-field">
-        <span>kg</span>
-        <input
-          type="number"
-          min={0}
-          max={1000}
-          step={0.5}
-          inputMode="decimal"
-          value={result.actualWeightKg ?? ''}
-          onChange={(e) =>
-            onChange({
-              completed: result.completed,
-              actualWeightKg: e.target.value === '' ? null : Number(e.target.value),
-              actualReps: result.actualReps,
-            })
-          }
-        />
-      </label>
-      <label className="compact-field">
-        <span>reps</span>
-        <input
-          type="number"
-          min={0}
-          max={100}
-          inputMode="numeric"
-          value={result.actualReps ?? ''}
-          onChange={(e) =>
-            onChange({
-              completed: result.completed,
-              actualWeightKg: result.actualWeightKg,
-              actualReps: e.target.value === '' ? null : Number(e.target.value),
-            })
-          }
-        />
-      </label>
+      {targetReps && <span className="target">Target {targetReps} reps</span>}
+      {exercise.kind === 'timed' && <span className="target">Target {exercise.durationSecs}s</span>}
+      {exercise.kind === 'resistance' && (
+        <>
+          <label className="compact-field">
+            <span>kg</span>
+            <input
+              type="number"
+              min={0}
+              max={1000}
+              step={0.5}
+              inputMode="decimal"
+              value={result.actualWeightKg ?? ''}
+              onChange={(e) =>
+                onChange({
+                  completed: result.completed,
+                  actualWeightKg: e.target.value === '' ? null : Number(e.target.value),
+                  actualReps: result.actualReps,
+                })
+              }
+            />
+          </label>
+          <label className="compact-field">
+            <span>reps</span>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              inputMode="numeric"
+              value={result.actualReps ?? ''}
+              onChange={(e) =>
+                onChange({
+                  completed: result.completed,
+                  actualWeightKg: result.actualWeightKg,
+                  actualReps: e.target.value === '' ? null : Number(e.target.value),
+                })
+              }
+            />
+          </label>
+        </>
+      )}
     </div>
   );
 }

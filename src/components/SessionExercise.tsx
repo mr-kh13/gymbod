@@ -12,7 +12,7 @@ export function SessionExercise({ exercise, results, onRecordSet }: SessionExerc
     <section className="session-exercise">
       <div>
         <p className="eyebrow">
-          {exercise.sets} sets · {exercise.targetReps} target reps
+          {exercise.sets} sets · {exercise.kind === 'resistance' ? `${exercise.targetReps} target reps` : `${exercise.durationSecs}s`}
         </p>
         <h2>{exercise.exerciseName}</h2>
       </div>
@@ -21,7 +21,7 @@ export function SessionExercise({ exercise, results, onRecordSet }: SessionExerc
           <SetRow
             key={result.setNumber}
             result={result}
-            targetReps={exercise.targetReps}
+            exercise={exercise}
             onChange={(values) => onRecordSet(exercise.exerciseId, result.setNumber, values)}
           />
         ))}

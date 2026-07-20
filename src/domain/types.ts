@@ -1,16 +1,33 @@
 export type ExerciseCategory = 'upper' | 'lower' | 'core';
+export type ExerciseMeasurement = 'resistance' | 'timed';
 
 export interface Exercise {
   id: string;
   name: string;
   category: ExerciseCategory;
+  measurement: ExerciseMeasurement;
 }
 
-export interface WorkoutExercise {
+export interface ResistanceWorkoutExercise {
+  kind: 'resistance';
   exerciseId: string;
   sets: number;
   targetReps: number;
+  targetWeightKg?: number;
+  restBetweenSetsSecs?: number;
+  restBeforeNextSecs?: number;
 }
+
+export interface TimedWorkoutExercise {
+  kind: 'timed';
+  exerciseId: string;
+  sets: number;
+  durationSecs: number;
+  restBetweenSetsSecs?: number;
+  restBeforeNextSecs?: number;
+}
+
+export type WorkoutExercise = ResistanceWorkoutExercise | TimedWorkoutExercise;
 
 export interface Workout {
   id: string;
@@ -20,9 +37,9 @@ export interface Workout {
   updatedAt: string;
 }
 
-export interface SessionExercise extends WorkoutExercise {
-  exerciseName: string;
-}
+export type ResistanceSessionExercise = ResistanceWorkoutExercise & { exerciseName: string };
+export type TimedSessionExercise = TimedWorkoutExercise & { exerciseName: string };
+export type SessionExercise = ResistanceSessionExercise | TimedSessionExercise;
 
 export interface SetResult {
   exerciseId: string;
@@ -46,17 +63,32 @@ export interface Session {
 }
 
 export interface PlannerState {
-  schemaVersion: 1;
+  schemaVersion: 2;
   workouts: Workout[];
   activeSession: Session | null;
   history: Session[];
 }
 
-export interface WorkoutExerciseDraft {
+export interface ResistanceWorkoutExerciseDraft {
+  kind: 'resistance';
   exerciseId: string;
   sets: string | number;
   targetReps: string | number;
+  targetWeightKg: string | number;
+  restBetweenSetsSecs: string | number;
+  restBeforeNextSecs: string | number;
 }
+
+export interface TimedWorkoutExerciseDraft {
+  kind: 'timed';
+  exerciseId: string;
+  sets: string | number;
+  durationSecs: string | number;
+  restBetweenSetsSecs: string | number;
+  restBeforeNextSecs: string | number;
+}
+
+export type WorkoutExerciseDraft = ResistanceWorkoutExerciseDraft | TimedWorkoutExerciseDraft;
 
 export interface WorkoutDraft {
   id: string | null;

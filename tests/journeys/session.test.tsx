@@ -11,7 +11,15 @@ function stateWithWorkout() {
     id: null,
     name: 'Push day',
     exercises: [
-      { exerciseId: 'bench-press', sets: 2, targetReps: 8 },
+      {
+        kind: 'resistance' as const,
+        exerciseId: 'bench-press',
+        sets: 2,
+        targetReps: 8,
+        targetWeightKg: '',
+        restBetweenSetsSecs: '',
+        restBeforeNextSecs: '',
+      },
     ],
   }, { id: 'w1' }).state;
 }

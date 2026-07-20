@@ -1,5 +1,6 @@
 import type { WorkoutDraft, WorkoutExerciseDraft, ValidationError } from '../domain/types';
 import { EXERCISES } from '../domain/catalog';
+import { defaultDraftForExercise } from '../domain/workouts';
 import { ExerciseRow } from './ExerciseRow';
 import { ErrorSummary } from './ErrorSummary';
 
@@ -41,7 +42,7 @@ export function WorkoutEditor({ draft, errors, onChange, onSave, onCancel }: Wor
     if (!exercise) return;
     onChange({
       ...draft,
-      exercises: [...draft.exercises, { exerciseId: exercise.id, sets: 3, targetReps: 8 }],
+      exercises: [...draft.exercises, defaultDraftForExercise(exercise.id, EXERCISES)],
     });
   }
 

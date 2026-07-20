@@ -73,7 +73,7 @@ function SessionDetailRoute() {
             <section key={exercise.exerciseId} className="session-exercise">
               <div>
                 <p className="eyebrow">
-                  {exercise.sets} sets · {exercise.targetReps} target reps
+                  {exercise.sets} sets · {exercise.kind === 'resistance' ? `${exercise.targetReps} target reps` : `${exercise.durationSecs}s`}
                 </p>
                 <h2>{exercise.exerciseName}</h2>
               </div>
@@ -86,12 +86,19 @@ function SessionDetailRoute() {
                     <span className="set-check">
                       <span>{result.completed ? '✓' : '○'} Set {result.setNumber}</span>
                     </span>
-                    <span className="target">Target {exercise.targetReps} reps</span>
-                    {result.actualWeightKg !== null && (
-                      <span className="compact-field">{result.actualWeightKg} kg</span>
+                    {exercise.kind === 'resistance' && (
+                      <>
+                        <span className="target">Target {exercise.targetReps} reps</span>
+                        {result.actualWeightKg !== null && (
+                          <span className="compact-field">{result.actualWeightKg} kg</span>
+                        )}
+                        {result.actualReps !== null && (
+                          <span className="compact-field">{result.actualReps} reps</span>
+                        )}
+                      </>
                     )}
-                    {result.actualReps !== null && (
-                      <span className="compact-field">{result.actualReps} reps</span>
+                    {exercise.kind === 'timed' && (
+                      <span className="target">{exercise.durationSecs}s</span>
                     )}
                   </div>
                 ))}

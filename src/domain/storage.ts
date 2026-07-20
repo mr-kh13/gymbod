@@ -1,8 +1,9 @@
 import type { PlannerState } from './types';
+import { EXERCISES } from './catalog';
 
 export const STORAGE_KEY = 'form.planner.v1';
 export const THEME_KEY = 'form.planner.theme.v1';
-export const SCHEMA_VERSION = 1 as const;
+export const SCHEMA_VERSION = 2 as const;
 
 export class StorageCorruptionError extends Error {
   constructor(message = 'Saved planner data could not be read.') {
@@ -12,7 +13,73 @@ export class StorageCorruptionError extends Error {
 }
 
 export function createDefaultState(): PlannerState {
-  return { schemaVersion: 1, workouts: [], activeSession: null, history: [] };
+  return { schemaVersion: 2, workouts: [], activeSession: null, history: [] };
+}
+
+interface WorkoutExerciseV1 {
+  exerciseId: string;
+  sets: number;
+  targetReps: number;
+}
+
+interface SessionExerciseV1 extends WorkoutExerciseV1 {
+  exerciseName: string;
+}
+
+interface SessionV1 extends Omit<PlannerState extends { activeSession: infer S } ? S : never, 'plannedExercises'> {
+  plannedExercises: SessionExerciseV1[];
+}
+
+interface PlannerStateV1 {
+  schemaVersion: 1;
+  workouts: Array<Omit<PlannerState extends { workouts: Array<infer W> } ? W : never, 'exercises'> & { exercises: WorkoutExerciseV1[] }>;
+  activeSession: Omit<SessionV1, 'plannedExercises'> & { plannedExercises: SessionExerciseV1[] } | null;
+  history: (Omit<SessionV1, 'plannedExercises'> & { plannedExercises: SessionExerciseV1[] })[];
+}
+
+export function migrateV1toV2(v1: PlannerStateV1): PlannerState {
+  const migrateExercise = (item: WorkoutExerciseV1) => {
+    const exercise = EXERCISES.find((e) => e.id === item.exerciseId);
+    if (exercise?.measurement === 'timed') {
+      return {
+        kind: 'timed' as const,
+        exerciseId: item.exerciseId,
+        sets: item.sets,
+        durationSecs: item.targetReps,
+      };
+    }
+    return {
+      kind: 'resistance' as const,
+      exerciseId: item.exerciseId,
+      sets: item.sets,
+      targetReps: item.targetReps,
+    };
+  };
+
+  const workouts = v1.workouts.map((workout) => ({
+    ...workout,
+    exercises: workout.exercises.map(migrateExercise),
+  })) as PlannerState['workouts'];
+
+  const activeSession = v1.activeSession
+    ? {
+        ...v1.activeSession,
+        plannedExercises: v1.activeSession.plannedExercises.map((item) => ({
+          ...migrateExercise(item),
+          exerciseName: item.exerciseName,
+        })),
+      } as PlannerState extends { activeSession: infer S } ? S : never
+    : null;
+
+  const history = v1.history.map((session) => ({
+    ...session,
+    plannedExercises: session.plannedExercises.map((item) => ({
+      ...migrateExercise(item),
+      exerciseName: item.exerciseName,
+    })),
+  })) as PlannerState['history'];
+
+  return { schemaVersion: 2, workouts, activeSession, history };
 }
 
 function isPlannerState(value: unknown): value is PlannerState {
@@ -40,8 +107,11 @@ export function createPlannerRepository(storage: Storage): PlannerRepository {
       if (raw === null) return createDefaultState();
       try {
         const parsed: unknown = JSON.parse(raw);
-        if (!isPlannerState(parsed)) throw new StorageCorruptionError();
-        return parsed;
+        if (isPlannerState(parsed)) return parsed;
+        if ((parsed as any)?.schemaVersion === 1) {
+          return migrateV1toV2(parsed as PlannerStateV1);
+        }
+        throw new StorageCorruptionError();
       } catch (error) {
         if (error instanceof StorageCorruptionError) throw error;
         throw new StorageCorruptionError();
@@ -49,7 +119,7 @@ export function createPlannerRepository(storage: Storage): PlannerRepository {
     },
     save(state: PlannerState) {
       if (!isPlannerState(state))
-        throw new TypeError('Planner state does not match schema version 1.');
+        throw new TypeError('Planner state does not match schema version 2.');
       storage.setItem(STORAGE_KEY, JSON.stringify(state));
     },
     reset() {

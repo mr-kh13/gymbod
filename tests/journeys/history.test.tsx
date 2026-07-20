@@ -10,7 +10,15 @@ function stateWithCompletedSession() {
   let state = createWorkout(createDefaultState(), {
     id: null,
     name: 'Push day',
-    exercises: [{ exerciseId: 'bench-press', sets: 1, targetReps: 8 }],
+    exercises: [{
+      kind: 'resistance' as const,
+      exerciseId: 'bench-press',
+      sets: 1,
+      targetReps: 8,
+      targetWeightKg: '',
+      restBetweenSetsSecs: '',
+      restBeforeNextSecs: '',
+    }],
   }, { id: 'w1' }).state;
   state = startSession(state, 'w1', { id: 's1', now: '2026-07-20T09:00:00.000Z' });
   state = recordSet(state, 'bench-press', 1, { completed: true, actualWeightKg: 80, actualReps: 8 });

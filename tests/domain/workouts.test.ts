@@ -6,6 +6,8 @@ import {
   duplicateWorkout,
   updateWorkout,
   validateWorkout,
+  defaultDraftForExercise,
+  workoutToDraft,
 } from '../../src/domain/workouts';
 import { createDefaultState } from '../../src/domain/storage';
 import { startSession } from '../../src/domain/sessions';
@@ -14,8 +16,24 @@ const validDraft = {
   id: null,
   name: 'Push day',
   exercises: [
-    { exerciseId: 'bench-press', sets: 3, targetReps: 8 },
-    { exerciseId: 'overhead-press', sets: 3, targetReps: 10 },
+    {
+      kind: 'resistance' as const,
+      exerciseId: 'bench-press',
+      sets: 3,
+      targetReps: 8,
+      targetWeightKg: '',
+      restBetweenSetsSecs: '',
+      restBeforeNextSecs: '',
+    },
+    {
+      kind: 'resistance' as const,
+      exerciseId: 'overhead-press',
+      sets: 3,
+      targetReps: 10,
+      targetWeightKg: '',
+      restBetweenSetsSecs: '',
+      restBeforeNextSecs: '',
+    },
   ],
 };
 
@@ -43,8 +61,24 @@ describe('validateWorkout', () => {
         id: null,
         name: ' ',
         exercises: [
-          { exerciseId: 'missing', sets: 0, targetReps: 101 },
-          { exerciseId: 'missing', sets: 'x', targetReps: '' },
+          {
+            kind: 'resistance' as const,
+            exerciseId: 'missing',
+            sets: 0,
+            targetReps: 101,
+            targetWeightKg: '',
+            restBetweenSetsSecs: '',
+            restBeforeNextSecs: '',
+          },
+          {
+            kind: 'resistance' as const,
+            exerciseId: 'missing',
+            sets: 'x',
+            targetReps: '',
+            targetWeightKg: '',
+            restBetweenSetsSecs: '',
+            restBeforeNextSecs: '',
+          },
         ],
       },
       EXERCISES,
@@ -112,5 +146,65 @@ describe('duplicateWorkout', () => {
     ({ state } = duplicateWorkout(state, 'w1', { id: 'w2' }));
     const { workout: second } = duplicateWorkout(state, 'w1', { id: 'w3' });
     expect(second.name).toBe('Copy of Push day (2)');
+  });
+});
+
+describe('validateWorkout - discriminated union types', () => {
+  it('rejects invalid durationSecs for timed exercise', () => {
+    const timedDraft = {
+      id: null,
+      name: 'Core day',
+      exercises: [
+        { kind: 'timed' as const, exerciseId: 'plank', sets: 3, durationSecs: 0, restBetweenSetsSecs: '', restBeforeNextSecs: '' },
+      ],
+    };
+    const errors = validateWorkout(timedDraft, EXERCISES);
+    expect(errors.some((e) => e.field === 'exercises.0.durationSecs')).toBe(true);
+  });
+
+  it('accepts optional empty targetWeightKg', () => {
+    const resistanceDraft = {
+      id: null,
+      name: 'Push day',
+      exercises: [
+        {
+          kind: 'resistance' as const,
+          exerciseId: 'bench-press',
+          sets: 3,
+          targetReps: 8,
+          targetWeightKg: '',
+          restBetweenSetsSecs: '',
+          restBeforeNextSecs: '',
+        },
+      ],
+    };
+    const errors = validateWorkout(resistanceDraft, EXERCISES);
+    expect(errors).toHaveLength(0);
+  });
+});
+
+describe('defaultDraftForExercise', () => {
+  it('returns resistance kind for non-timed exercises', () => {
+    const draft = defaultDraftForExercise('bench-press', EXERCISES);
+    expect(draft.kind).toBe('resistance');
+    expect(draft).toHaveProperty('targetReps');
+  });
+
+  it('returns timed kind for plank', () => {
+    const draft = defaultDraftForExercise('plank', EXERCISES);
+    expect(draft.kind).toBe('timed');
+    expect(draft).toHaveProperty('durationSecs');
+  });
+});
+
+describe('workoutToDraft', () => {
+  it('round-trips a workout back to a compilable draft', () => {
+    const state = createWorkout(createDefaultState(), validDraft, { id: 'w1' }).state;
+    const workout = state.workouts[0];
+    const draft = workoutToDraft(workout);
+    expect(draft.name).toBe(workout.name);
+    expect(draft.exercises.map((e: any) => e.exerciseId)).toEqual(
+      workout.exercises.map((e) => e.exerciseId),
+    );
   });
 });

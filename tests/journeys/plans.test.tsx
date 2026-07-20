@@ -50,7 +50,15 @@ describe('Plans — US1: Plan a workout', () => {
     const state = createWorkout(createDefaultState(), {
       id: null,
       name: 'Leg day',
-      exercises: [{ exerciseId: 'back-squat', sets: 3, targetReps: 10 }],
+      exercises: [{
+        kind: 'resistance' as const,
+        exerciseId: 'back-squat',
+        sets: 3,
+        targetReps: 10,
+        targetWeightKg: '',
+        restBetweenSetsSecs: '',
+        restBeforeNextSecs: '',
+      }],
     }, { id: 'w1' }).state;
 
     renderAt('/plans', memoryRepo(state));
@@ -67,7 +75,15 @@ describe('Plans — US1: Plan a workout', () => {
     const state = createWorkout(createDefaultState(), {
       id: null,
       name: 'Push day',
-      exercises: [{ exerciseId: 'bench-press', sets: 3, targetReps: 8 }],
+      exercises: [{
+        kind: 'resistance' as const,
+        exerciseId: 'bench-press',
+        sets: 3,
+        targetReps: 8,
+        targetWeightKg: '',
+        restBetweenSetsSecs: '',
+        restBeforeNextSecs: '',
+      }],
     }, { id: 'w1' }).state;
 
     renderAt('/plans', memoryRepo(state));

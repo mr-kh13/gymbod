@@ -1,4 +1,5 @@
 import { EXERCISES } from '../domain/catalog';
+import { defaultDraftForExercise } from '../domain/workouts';
 import type { WorkoutExerciseDraft, ValidationError } from '../domain/types';
 
 function errorFor(errors: ValidationError[], field: string): string {
@@ -30,8 +31,18 @@ export function ExerciseRow({
 }: ExerciseRowProps) {
   const exerciseError = errorFor(errors, `exercises.${index}.exerciseId`);
   const setsError = errorFor(errors, `exercises.${index}.sets`);
-  const repsError = errorFor(errors, `exercises.${index}.targetReps`);
   const errId = (f: string) => `error-exercises-${index}-${f}`;
+
+  const handleExerciseChange = (newExerciseId: string) => {
+    const newExercise = EXERCISES.find((e) => e.id === newExerciseId);
+    const oldExercise = EXERCISES.find((e) => e.id === item.exerciseId);
+
+    if (newExercise?.measurement !== oldExercise?.measurement) {
+      onChange(index, defaultDraftForExercise(newExerciseId, EXERCISES));
+    } else {
+      onChange(index, { ...item, exerciseId: newExerciseId });
+    }
+  };
 
   return (
     <fieldset className="exercise-row" data-index={index}>
@@ -43,7 +54,7 @@ export function ExerciseRow({
           value={item.exerciseId}
           aria-invalid={exerciseError ? true : undefined}
           aria-describedby={exerciseError ? errId('exerciseId') : undefined}
-          onChange={(e) => onChange(index, { ...item, exerciseId: e.target.value })}
+          onChange={(e) => handleExerciseChange(e.target.value)}
         >
           {EXERCISES.map((ex) => (
             <option
@@ -77,22 +88,44 @@ export function ExerciseRow({
         )}
       </label>
 
-      <label className="field">
-        <span>Target reps</span>
-        <input
-          type="number"
-          inputMode="numeric"
-          min={1}
-          max={100}
-          value={item.targetReps}
-          aria-invalid={repsError ? true : undefined}
-          aria-describedby={repsError ? errId('targetReps') : undefined}
-          onChange={(e) => onChange(index, { ...item, targetReps: e.target.value })}
-        />
-        {repsError && (
-          <small className="field-error" id={errId('targetReps')}>{repsError}</small>
-        )}
-      </label>
+      {item.kind === 'resistance' && (
+        <label className="field">
+          <span>Target reps</span>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={100}
+            value={item.targetReps}
+            aria-invalid={!!errorFor(errors, `exercises.${index}.targetReps`)}
+            aria-describedby={errorFor(errors, `exercises.${index}.targetReps`) ? errId('targetReps') : undefined}
+            onChange={(e) => onChange(index, { ...item, targetReps: e.target.value })}
+          />
+          {errorFor(errors, `exercises.${index}.targetReps`) && (
+            <small className="field-error" id={errId('targetReps')}>{errorFor(errors, `exercises.${index}.targetReps`)}</small>
+          )}
+        </label>
+      )}
+
+      {item.kind === 'timed' && (
+        <label className="field">
+          <span>Duration (s)</span>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={3600}
+            value={item.durationSecs}
+            aria-invalid={!!errorFor(errors, `exercises.${index}.durationSecs`)}
+            aria-describedby={errorFor(errors, `exercises.${index}.durationSecs`) ? errId('durationSecs') : undefined}
+            onChange={(e) => onChange(index, { ...item, durationSecs: e.target.value })}
+            disabled
+          />
+          {errorFor(errors, `exercises.${index}.durationSecs`) && (
+            <small className="field-error" id={errId('durationSecs')}>{errorFor(errors, `exercises.${index}.durationSecs`)}</small>
+          )}
+        </label>
+      )}
 
       <div className="row-actions" aria-label={`Reorder exercise ${index + 1}`}>
         <button

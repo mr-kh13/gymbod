@@ -5,7 +5,7 @@ import { usePlanner } from '../context/PlannerContext';
 import { WorkoutCard } from '../components/WorkoutCard';
 import { WorkoutEditor } from '../components/WorkoutEditor';
 import type { WorkoutDraft, ValidationError } from '../domain/types';
-import { validateWorkout } from '../domain/workouts';
+import { validateWorkout, defaultDraftForExercise, workoutToDraft } from '../domain/workouts';
 import { EXERCISES } from '../domain/catalog';
 
 export const Route = createRoute({
@@ -15,7 +15,7 @@ export const Route = createRoute({
 });
 
 function newDraft(): WorkoutDraft {
-  return { id: null, name: '', exercises: [{ exerciseId: EXERCISES[0].id, sets: 3, targetReps: 8 }] };
+  return { id: null, name: '', exercises: [defaultDraftForExercise(EXERCISES[0].id, EXERCISES)] };
 }
 
 function PlansRoute() {
@@ -116,13 +116,13 @@ function PlansRoute() {
               isRenaming={workout.id === renamingId}
               onStart={() => handleStart(workout.id)}
               onEdit={() => {
-                setEditor({ id: workout.id, name: workout.name, exercises: workout.exercises.map((e) => ({ ...e })) });
+                setEditor(workoutToDraft(workout));
                 setErrors([]);
               }}
               onDelete={() => handleDelete(workout.id)}
               onDuplicate={() => handleDuplicate(workout.id)}
               onConfirmRename={(name) => {
-                dispatch({ type: 'UPDATE_WORKOUT', id: workout.id, draft: { id: workout.id, name, exercises: workout.exercises } });
+                dispatch({ type: 'UPDATE_WORKOUT', id: workout.id, draft: workoutToDraft({ ...workout, name }) });
                 setRenamingId(null);
               }}
               onCancelRename={() => setRenamingId(null)}

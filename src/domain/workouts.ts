@@ -1,4 +1,4 @@
-import type { PlannerState, Workout, WorkoutDraft, ValidationError } from './types';
+import type { PlannerState, Workout, WorkoutDraft, ValidationError, Exercise, WorkoutExerciseDraft } from './types';
 import { EXERCISES, exerciseById } from './catalog';
 
 const integerInRange = (value: string | number, min: number, max: number): boolean =>
@@ -32,8 +32,28 @@ export function validateWorkout(
     seen.add(item.exerciseId);
     if (!integerInRange(item.sets, 1, 10))
       errors.push({ field: `${path}.sets`, message: 'Sets must be from 1 to 10.' });
-    if (!integerInRange(item.targetReps, 1, 100))
-      errors.push({ field: `${path}.targetReps`, message: 'Repetitions must be from 1 to 100.' });
+
+    if (item.kind === 'resistance') {
+      if (!integerInRange(item.targetReps, 1, 100))
+        errors.push({ field: `${path}.targetReps`, message: 'Repetitions must be from 1 to 100.' });
+      if (item.targetWeightKg !== '') {
+        const weight = Number(item.targetWeightKg);
+        if (!Number.isFinite(weight) || weight < 0 || weight > 1000)
+          errors.push({ field: `${path}.targetWeightKg`, message: 'Weight must be from 0 to 1,000 kg.' });
+      }
+    } else if (item.kind === 'timed') {
+      if (!integerInRange(item.durationSecs, 1, 3600))
+        errors.push({ field: `${path}.durationSecs`, message: 'Duration must be from 1 to 3,600 seconds.' });
+    }
+
+    if (item.restBetweenSetsSecs !== '') {
+      if (!integerInRange(item.restBetweenSetsSecs, 0, 600))
+        errors.push({ field: `${path}.restBetweenSetsSecs`, message: 'Rest between sets must be from 0 to 600 seconds.' });
+    }
+    if (item.restBeforeNextSecs !== '') {
+      if (!integerInRange(item.restBeforeNextSecs, 0, 600))
+        errors.push({ field: `${path}.restBeforeNextSecs`, message: 'Rest before next exercise must be from 0 to 600 seconds.' });
+    }
   });
   return errors;
 }
@@ -49,11 +69,28 @@ export function createWorkout(
   const workout: Workout = {
     id: options.id ?? makeId(),
     name: draft.name.trim(),
-    exercises: draft.exercises.map((item) => ({
-      exerciseId: item.exerciseId,
-      sets: Number(item.sets),
-      targetReps: Number(item.targetReps),
-    })),
+    exercises: draft.exercises.map((item) => {
+      if (item.kind === 'resistance') {
+        return {
+          kind: 'resistance' as const,
+          exerciseId: item.exerciseId,
+          sets: Number(item.sets),
+          targetReps: Number(item.targetReps),
+          targetWeightKg: item.targetWeightKg ? Number(item.targetWeightKg) : undefined,
+          restBetweenSetsSecs: item.restBetweenSetsSecs ? Number(item.restBetweenSetsSecs) : undefined,
+          restBeforeNextSecs: item.restBeforeNextSecs ? Number(item.restBeforeNextSecs) : undefined,
+        };
+      } else {
+        return {
+          kind: 'timed' as const,
+          exerciseId: item.exerciseId,
+          sets: Number(item.sets),
+          durationSecs: Number(item.durationSecs),
+          restBetweenSetsSecs: item.restBetweenSetsSecs ? Number(item.restBetweenSetsSecs) : undefined,
+          restBeforeNextSecs: item.restBeforeNextSecs ? Number(item.restBeforeNextSecs) : undefined,
+        };
+      }
+    }),
     createdAt: now,
     updatedAt: now,
   };
@@ -73,11 +110,28 @@ export function updateWorkout(
   const workout: Workout = {
     ...existing,
     name: draft.name.trim(),
-    exercises: draft.exercises.map((item) => ({
-      exerciseId: item.exerciseId,
-      sets: Number(item.sets),
-      targetReps: Number(item.targetReps),
-    })),
+    exercises: draft.exercises.map((item) => {
+      if (item.kind === 'resistance') {
+        return {
+          kind: 'resistance' as const,
+          exerciseId: item.exerciseId,
+          sets: Number(item.sets),
+          targetReps: Number(item.targetReps),
+          targetWeightKg: item.targetWeightKg ? Number(item.targetWeightKg) : undefined,
+          restBetweenSetsSecs: item.restBetweenSetsSecs ? Number(item.restBetweenSetsSecs) : undefined,
+          restBeforeNextSecs: item.restBeforeNextSecs ? Number(item.restBeforeNextSecs) : undefined,
+        };
+      } else {
+        return {
+          kind: 'timed' as const,
+          exerciseId: item.exerciseId,
+          sets: Number(item.sets),
+          durationSecs: Number(item.durationSecs),
+          restBetweenSetsSecs: item.restBetweenSetsSecs ? Number(item.restBetweenSetsSecs) : undefined,
+          restBeforeNextSecs: item.restBeforeNextSecs ? Number(item.restBeforeNextSecs) : undefined,
+        };
+      }
+    }),
     updatedAt: options.now ?? new Date().toISOString(),
   };
   return {
@@ -118,6 +172,62 @@ export function duplicateWorkout(
     updatedAt: now,
   };
   return { state: { ...state, workouts: [...state.workouts, workout] }, workout };
+}
+
+export function defaultDraftForExercise(
+  exerciseId: string,
+  catalog: readonly Exercise[] = EXERCISES,
+): WorkoutExerciseDraft {
+  const exercise = catalog.find((e) => e.id === exerciseId);
+  if (!exercise) throw new Error(`Exercise ${exerciseId} not found.`);
+
+  if (exercise.measurement === 'timed') {
+    return {
+      kind: 'timed',
+      exerciseId,
+      sets: 3,
+      durationSecs: 30,
+      restBetweenSetsSecs: '',
+      restBeforeNextSecs: '',
+    };
+  }
+  return {
+    kind: 'resistance',
+    exerciseId,
+    sets: 3,
+    targetReps: 8,
+    targetWeightKg: '',
+    restBetweenSetsSecs: '',
+    restBeforeNextSecs: '',
+  };
+}
+
+export function workoutToDraft(workout: Workout): WorkoutDraft {
+  return {
+    id: workout.id,
+    name: workout.name,
+    exercises: workout.exercises.map((item) => {
+      if (item.kind === 'resistance') {
+        return {
+          kind: 'resistance' as const,
+          exerciseId: item.exerciseId,
+          sets: item.sets,
+          targetReps: item.targetReps,
+          targetWeightKg: item.targetWeightKg ?? '',
+          restBetweenSetsSecs: item.restBetweenSetsSecs ?? '',
+          restBeforeNextSecs: item.restBeforeNextSecs ?? '',
+        };
+      }
+      return {
+        kind: 'timed' as const,
+        exerciseId: item.exerciseId,
+        sets: item.sets,
+        durationSecs: item.durationSecs,
+        restBetweenSetsSecs: item.restBetweenSetsSecs ?? '',
+        restBeforeNextSecs: item.restBeforeNextSecs ?? '',
+      };
+    }),
+  };
 }
 
 export function workoutSummary(workout: Workout): { exerciseCount: number; totalSets: number } {
