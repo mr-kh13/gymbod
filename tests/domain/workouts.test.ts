@@ -208,3 +208,42 @@ describe('workoutToDraft', () => {
     );
   });
 });
+
+describe('validateWorkout - timed exercises', () => {
+  it('rejects invalid durationSecs values', () => {
+    const timedDraft = {
+      id: null,
+      name: 'Core day',
+      exercises: [
+        { kind: 'timed' as const, exerciseId: 'plank', sets: 3, durationSecs: 0, restBetweenSetsSecs: '', restBeforeNextSecs: '' },
+      ],
+    };
+    const errors = validateWorkout(timedDraft, EXERCISES);
+    expect(errors.some((e) => e.field === 'exercises.0.durationSecs')).toBe(true);
+  });
+
+  it('accepts valid durationSecs', () => {
+    const timedDraft = {
+      id: null,
+      name: 'Core day',
+      exercises: [
+        { kind: 'timed' as const, exerciseId: 'plank', sets: 3, durationSecs: 60, restBetweenSetsSecs: '', restBeforeNextSecs: '' },
+      ],
+    };
+    const errors = validateWorkout(timedDraft, EXERCISES);
+    expect(errors.filter((e) => e.field.includes('exercises.0')).length).toBe(0);
+  });
+
+  it('createWorkout produces TimedWorkoutExercise from TimedWorkoutExerciseDraft', () => {
+    const timedDraft = {
+      id: null,
+      name: 'Core day',
+      exercises: [
+        { kind: 'timed' as const, exerciseId: 'plank', sets: 3, durationSecs: 60, restBetweenSetsSecs: '', restBeforeNextSecs: '' },
+      ],
+    };
+    const result = createWorkout(createDefaultState(), timedDraft, { id: 'w1' });
+    expect(result.workout?.exercises[0].kind).toBe('timed');
+    expect((result.workout?.exercises[0] as any).durationSecs).toBe(60);
+  });
+});

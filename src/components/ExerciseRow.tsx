@@ -139,7 +139,6 @@ export function ExerciseRow({
             aria-invalid={!!errorFor(errors, `exercises.${index}.durationSecs`)}
             aria-describedby={errorFor(errors, `exercises.${index}.durationSecs`) ? errId('durationSecs') : undefined}
             onChange={(e) => onChange(index, { ...item, durationSecs: e.target.value })}
-            disabled
           />
           {errorFor(errors, `exercises.${index}.durationSecs`) && (
             <small className="field-error" id={errId('durationSecs')}>{errorFor(errors, `exercises.${index}.durationSecs`)}</small>

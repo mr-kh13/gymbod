@@ -109,4 +109,32 @@ describe('Session — US2: Complete a planned session', () => {
       expect(screen.getByText(/@ 80 kg/)).toBeInTheDocument();
     });
   });
+
+  it('[T019] displays duration for timed exercises', async () => {
+    const state = createWorkout(createDefaultState(), {
+      id: null,
+      name: 'Core day',
+      exercises: [
+        {
+          kind: 'timed' as const,
+          exerciseId: 'plank',
+          sets: 3,
+          durationSecs: 60,
+          restBetweenSetsSecs: '',
+          restBeforeNextSecs: '',
+        },
+      ],
+    }, { id: 'w1' }).state;
+
+    const withSession = startSession(state, 'w1', {
+      id: 's1',
+      now: '2026-07-20T10:00:00.000Z',
+    });
+    renderAt('/session', memoryRepo(withSession));
+
+    await waitFor(() => {
+      expect(screen.getByText(/plank/i)).toBeInTheDocument();
+      expect(screen.getByText(/sets · 60s/)).toBeInTheDocument();
+    });
+  });
 });

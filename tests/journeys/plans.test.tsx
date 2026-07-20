@@ -148,4 +148,42 @@ describe('Plans — US1: Plan a workout', () => {
     const weightInput = await screen.findByLabelText(/target weight/i) as HTMLInputElement;
     expect(weightInput.value).toBe('');
   });
+
+  it('[T018] plank shows duration input not reps input', async () => {
+    const user = userEvent.setup();
+    renderAt('/plans');
+
+    await waitFor(() => screen.getByText(/build your first session/i));
+    await user.click(screen.getByRole('button', { name: /create workout/i }));
+
+    // Change exercise to plank
+    const exerciseSelect = await screen.findByRole('combobox', { name: /exercise/i }) as HTMLSelectElement;
+    await user.selectOptions(exerciseSelect, 'plank');
+
+    // Verify duration input is present and reps input is not
+    await waitFor(() => {
+      expect(screen.queryByLabelText(/target reps/i)).not.toBeInTheDocument();
+    });
+    expect(screen.getByLabelText(/duration/i)).toBeInTheDocument();
+
+    // Enter duration and save
+    const durationInput = screen.getByLabelText(/duration/i);
+    await user.clear(durationInput);
+    await user.type(durationInput, '60');
+
+    const nameInput = screen.getByPlaceholderText(/e\.g\. push day/i);
+    await user.clear(nameInput);
+    await user.type(nameInput, 'Core day');
+
+    await user.click(screen.getByRole('button', { name: /save workout/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Core day')).toBeInTheDocument();
+    });
+
+    // Edit and verify duration persists
+    await user.click(screen.getByRole('button', { name: /edit/i }));
+    const editDurationInput = screen.getByLabelText(/duration/i) as HTMLInputElement;
+    expect(editDurationInput.value).toBe('60');
+  });
 });
