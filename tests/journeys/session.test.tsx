@@ -81,4 +81,32 @@ describe('Session — US2: Complete a planned session', () => {
     // Session should still be active (confirm was cancelled)
     expect(screen.getByRole('button', { name: /finish session/i })).toBeInTheDocument();
   });
+
+  it('[T012] displays weight in eyebrow when set', async () => {
+    const state = createWorkout(createDefaultState(), {
+      id: null,
+      name: 'Push day',
+      exercises: [
+        {
+          kind: 'resistance' as const,
+          exerciseId: 'bench-press',
+          sets: 2,
+          targetReps: 8,
+          targetWeightKg: 80,
+          restBetweenSetsSecs: '',
+          restBeforeNextSecs: '',
+        },
+      ],
+    }, { id: 'w1' }).state;
+
+    const withSession = startSession(state, 'w1', {
+      id: 's1',
+      now: '2026-07-20T10:00:00.000Z',
+    });
+    renderAt('/session', memoryRepo(withSession));
+
+    await waitFor(() => {
+      expect(screen.getByText(/@ 80 kg/)).toBeInTheDocument();
+    });
+  });
 });

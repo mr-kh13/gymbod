@@ -94,4 +94,58 @@ describe('Plans — US1: Plan a workout', () => {
       expect(screen.getByText('Copy of Push day')).toBeInTheDocument();
     });
   });
+
+  it('[T010] sets optional weight on resistance exercise and persists through edit cycle', async () => {
+    const user = userEvent.setup();
+    renderAt('/plans');
+
+    await waitFor(() => screen.getByText(/build your first session/i));
+    await user.click(screen.getByRole('button', { name: /create workout/i }));
+
+    const nameInput = await screen.findByPlaceholderText(/e\.g\. push day/i);
+    await user.type(nameInput, 'Push day');
+
+    // Verify weight input is visible and enter weight
+    const weightInput = await screen.findByLabelText(/target weight/i) as HTMLInputElement;
+    await user.type(weightInput, '60');
+
+    await user.click(screen.getByRole('button', { name: /save workout/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Push day')).toBeInTheDocument();
+    });
+
+    // Edit the workout and verify weight is still there
+    await user.click(screen.getByRole('button', { name: /edit/i }));
+    const editWeightInput = await screen.findByLabelText(/target weight/i) as HTMLInputElement;
+    expect(editWeightInput.value).toBe('60');
+  });
+
+  it('[T011] opens workout with no weight target without error (backward compatibility)', async () => {
+    const state = createWorkout(createDefaultState(), {
+      id: null,
+      name: 'Legacy workout',
+      exercises: [{
+        kind: 'resistance' as const,
+        exerciseId: 'bench-press',
+        sets: 3,
+        targetReps: 8,
+        targetWeightKg: '', // empty string = not set (backward compat scenario)
+        restBetweenSetsSecs: '',
+        restBeforeNextSecs: '',
+      }],
+    }, { id: 'w1' }).state;
+
+    renderAt('/plans', memoryRepo(state));
+    await waitFor(() => {
+      expect(screen.getByText('Legacy workout')).toBeInTheDocument();
+    });
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: /edit/i }));
+
+    // Weight input should be visible but empty
+    const weightInput = await screen.findByLabelText(/target weight/i) as HTMLInputElement;
+    expect(weightInput.value).toBe('');
+  });
 });

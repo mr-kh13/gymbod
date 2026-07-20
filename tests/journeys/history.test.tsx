@@ -70,4 +70,33 @@ describe('History — US3: Review recent sessions', () => {
       expect(screen.getByText(/training history|recent work/i)).toBeInTheDocument();
     });
   });
+
+  it('[T013] displays weight in history detail eyebrow when set', async () => {
+    const user = userEvent.setup();
+    const state = createWorkout(createDefaultState(), {
+      id: null,
+      name: 'Push day',
+      exercises: [{
+        kind: 'resistance' as const,
+        exerciseId: 'bench-press',
+        sets: 1,
+        targetReps: 8,
+        targetWeightKg: 80,
+        restBetweenSetsSecs: '',
+        restBeforeNextSecs: '',
+      }],
+    }, { id: 'w1' }).state;
+
+    let sessionState = startSession(state, 'w1', { id: 's1', now: '2026-07-20T09:00:00.000Z' });
+    sessionState = recordSet(sessionState, 'bench-press', 1, { completed: true, actualWeightKg: 80, actualReps: 8 });
+    sessionState = finishSession(sessionState, { now: '2026-07-20T10:00:00.000Z' }).state;
+
+    renderAt('/history', memoryRepo(sessionState));
+    await waitFor(() => screen.getByText('Push day'));
+    await user.click(screen.getByRole('button', { name: /push day/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/@ 80 kg/)).toBeInTheDocument();
+    });
+  });
 });

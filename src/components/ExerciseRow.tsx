@@ -89,22 +89,42 @@ export function ExerciseRow({
       </label>
 
       {item.kind === 'resistance' && (
-        <label className="field">
-          <span>Target reps</span>
-          <input
-            type="number"
-            inputMode="numeric"
-            min={1}
-            max={100}
-            value={item.targetReps}
-            aria-invalid={!!errorFor(errors, `exercises.${index}.targetReps`)}
-            aria-describedby={errorFor(errors, `exercises.${index}.targetReps`) ? errId('targetReps') : undefined}
-            onChange={(e) => onChange(index, { ...item, targetReps: e.target.value })}
-          />
-          {errorFor(errors, `exercises.${index}.targetReps`) && (
-            <small className="field-error" id={errId('targetReps')}>{errorFor(errors, `exercises.${index}.targetReps`)}</small>
-          )}
-        </label>
+        <>
+          <label className="field">
+            <span>Target reps</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={100}
+              value={item.targetReps}
+              aria-invalid={!!errorFor(errors, `exercises.${index}.targetReps`)}
+              aria-describedby={errorFor(errors, `exercises.${index}.targetReps`) ? errId('targetReps') : undefined}
+              onChange={(e) => onChange(index, { ...item, targetReps: e.target.value })}
+            />
+            {errorFor(errors, `exercises.${index}.targetReps`) && (
+              <small className="field-error" id={errId('targetReps')}>{errorFor(errors, `exercises.${index}.targetReps`)}</small>
+            )}
+          </label>
+
+          <label className="field">
+            <span>Target weight (kg, optional)</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              min={0}
+              max={1000}
+              step={0.5}
+              value={item.targetWeightKg}
+              aria-invalid={!!errorFor(errors, `exercises.${index}.targetWeightKg`)}
+              aria-describedby={errorFor(errors, `exercises.${index}.targetWeightKg`) ? errId('targetWeightKg') : undefined}
+              onChange={(e) => onChange(index, { ...item, targetWeightKg: e.target.value })}
+            />
+            {errorFor(errors, `exercises.${index}.targetWeightKg`) && (
+              <small className="field-error" id={errId('targetWeightKg')}>{errorFor(errors, `exercises.${index}.targetWeightKg`)}</small>
+            )}
+          </label>
+        </>
       )}
 
       {item.kind === 'timed' && (
