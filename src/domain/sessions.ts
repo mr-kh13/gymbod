@@ -1,5 +1,5 @@
 import type { PlannerState, Session, SetResult } from './types';
-import { exerciseName } from './workouts';
+import { findExerciseName } from './catalog';
 
 const makeId = (): string =>
   globalThis.crypto?.randomUUID?.() ?? `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -14,7 +14,7 @@ export function startSession(
   if (!workout) throw new Error('Workout not found.');
   const plannedExercises = workout.exercises.map((item) => ({
     ...item,
-    exerciseName: exerciseName(item.exerciseId),
+    exerciseName: findExerciseName(item.exerciseId, state.customExercises),
   }));
   const results: SetResult[] = plannedExercises.flatMap((item) =>
     Array.from({ length: item.sets }, (_, i) => ({

@@ -1,5 +1,4 @@
-import type { WorkoutDraft, WorkoutExerciseDraft, ValidationError } from '../domain/types';
-import { EXERCISES } from '../domain/catalog';
+import type { CustomExercise, Exercise, WorkoutDraft, WorkoutExerciseDraft, ValidationError } from '../domain/types';
 import { defaultDraftForExercise } from '../domain/workouts';
 import { ExerciseRow } from './ExerciseRow';
 import { ErrorSummary } from './ErrorSummary';
@@ -11,12 +10,14 @@ function errorFor(errors: ValidationError[], field: string): string {
 interface WorkoutEditorProps {
   draft: WorkoutDraft;
   errors: ValidationError[];
+  catalogue: readonly Exercise[];
+  customExercises?: CustomExercise[];
   onChange: (draft: WorkoutDraft) => void;
   onSave: (draft: WorkoutDraft) => void;
   onCancel: () => void;
 }
 
-export function WorkoutEditor({ draft, errors, onChange, onSave, onCancel }: WorkoutEditorProps) {
+export function WorkoutEditor({ draft, errors, catalogue, customExercises = [], onChange, onSave, onCancel }: WorkoutEditorProps) {
   const usedIds = new Set(draft.exercises.map((e) => e.exerciseId));
   const nameError = errorFor(errors, 'name');
   const exercisesError = errorFor(errors, 'exercises');
@@ -38,11 +39,11 @@ export function WorkoutEditor({ draft, errors, onChange, onSave, onCancel }: Wor
   }
 
   function addExercise() {
-    const exercise = EXERCISES.find((e) => !usedIds.has(e.id));
+    const exercise = catalogue.find((e) => !usedIds.has(e.id));
     if (!exercise) return;
     onChange({
       ...draft,
-      exercises: [...draft.exercises, defaultDraftForExercise(exercise.id, EXERCISES)],
+      exercises: [...draft.exercises, defaultDraftForExercise(exercise.id, catalogue)],
     });
   }
 
@@ -90,6 +91,8 @@ export function WorkoutEditor({ draft, errors, onChange, onSave, onCancel }: Wor
               totalCount={draft.exercises.length}
               usedIds={usedIds}
               errors={errors}
+              catalogue={catalogue}
+              customExercises={customExercises}
               onChange={updateExercise}
               onMoveUp={(i) => moveExercise(i, -1)}
               onMoveDown={(i) => moveExercise(i, 1)}
@@ -107,7 +110,7 @@ export function WorkoutEditor({ draft, errors, onChange, onSave, onCancel }: Wor
             type="button"
             className="secondary"
             onClick={addExercise}
-            disabled={draft.exercises.length >= EXERCISES.length}
+            disabled={draft.exercises.length >= catalogue.length}
           >
             + Add exercise
           </button>

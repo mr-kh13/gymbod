@@ -1,4 +1,4 @@
-# update-context.ps1 — Pi Coding Agent integration: create/update AGENTS.md
+# update-context.ps1 — Claude Code integration: create/update CLAUDE.md
 #
 # Thin wrapper that delegates to the shared update-agent-context script.
 # Activated in Stage 7 when the shared script uses integration.json dispatch.
@@ -20,4 +20,4 @@ if (-not $repoRoot -or -not (Test-Path (Join-Path $repoRoot '.specify'))) {
     }
 }
 
-& "$repoRoot/.specify/scripts/powershell/update-agent-context.ps1" -AgentType pi
+& "$repoRoot/.specify/scripts/powershell/update-agent-context.ps1" -AgentType claude

@@ -3,7 +3,7 @@ import { EXERCISES } from './catalog';
 
 export const STORAGE_KEY = 'form.planner.v1';
 export const THEME_KEY = 'form.planner.theme.v1';
-export const SCHEMA_VERSION = 2 as const;
+export const SCHEMA_VERSION = 3 as const;
 
 export class StorageCorruptionError extends Error {
   constructor(message = 'Saved planner data could not be read.') {
@@ -13,7 +13,14 @@ export class StorageCorruptionError extends Error {
 }
 
 export function createDefaultState(): PlannerState {
-  return { schemaVersion: 2, workouts: [], activeSession: null, history: [] };
+  return { schemaVersion: 3, workouts: [], activeSession: null, history: [], customExercises: [] };
+}
+
+interface PlannerStateV2 {
+  schemaVersion: 2;
+  workouts: PlannerState['workouts'];
+  activeSession: PlannerState['activeSession'];
+  history: PlannerState['history'];
 }
 
 interface WorkoutExerciseV1 {
@@ -37,7 +44,7 @@ interface PlannerStateV1 {
   history: (Omit<SessionV1, 'plannedExercises'> & { plannedExercises: SessionExerciseV1[] })[];
 }
 
-export function migrateV1toV2(v1: PlannerStateV1): PlannerState {
+export function migrateV1toV2(v1: PlannerStateV1): PlannerStateV2 {
   const migrateExercise = (item: WorkoutExerciseV1) => {
     const exercise = EXERCISES.find((e) => e.id === item.exerciseId);
     if (exercise?.measurement === 'timed') {
@@ -82,6 +89,10 @@ export function migrateV1toV2(v1: PlannerStateV1): PlannerState {
   return { schemaVersion: 2, workouts, activeSession, history };
 }
 
+export function migrateV2toV3(v2: PlannerStateV2): PlannerState {
+  return { ...v2, schemaVersion: 3, customExercises: [] };
+}
+
 function isPlannerState(value: unknown): value is PlannerState {
   return Boolean(
     value &&
@@ -90,7 +101,8 @@ function isPlannerState(value: unknown): value is PlannerState {
       Array.isArray((value as PlannerState).workouts) &&
       ((value as PlannerState).activeSession === null ||
         typeof (value as PlannerState).activeSession === 'object') &&
-      Array.isArray((value as PlannerState).history),
+      Array.isArray((value as PlannerState).history) &&
+      Array.isArray((value as PlannerState).customExercises),
   );
 }
 
@@ -108,8 +120,11 @@ export function createPlannerRepository(storage: Storage): PlannerRepository {
       try {
         const parsed: unknown = JSON.parse(raw);
         if (isPlannerState(parsed)) return parsed;
+        if ((parsed as any)?.schemaVersion === 2) {
+          return migrateV2toV3(parsed as PlannerStateV2);
+        }
         if ((parsed as any)?.schemaVersion === 1) {
-          return migrateV1toV2(parsed as PlannerStateV1);
+          return migrateV2toV3(migrateV1toV2(parsed as PlannerStateV1));
         }
         throw new StorageCorruptionError();
       } catch (error) {
@@ -119,7 +134,7 @@ export function createPlannerRepository(storage: Storage): PlannerRepository {
     },
     save(state: PlannerState) {
       if (!isPlannerState(state))
-        throw new TypeError('Planner state does not match schema version 2.');
+        throw new TypeError('Planner state does not match schema version 3.');
       storage.setItem(STORAGE_KEY, JSON.stringify(state));
     },
     reset() {

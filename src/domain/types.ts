@@ -1,4 +1,4 @@
-export type ExerciseCategory = 'upper' | 'lower' | 'core';
+export type ExerciseCategory = 'upper' | 'lower' | 'core' | 'custom';
 export type ExerciseMeasurement = 'resistance' | 'timed';
 
 export interface Exercise {
@@ -62,11 +62,28 @@ export interface Session {
   status: SessionStatus;
 }
 
+export type CustomExerciseStatus = 'active' | 'retired';
+
+export interface CustomExercise {
+  id: string;
+  name: string;
+  measurement: ExerciseMeasurement;
+  status: CustomExerciseStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CustomExerciseDraft {
+  name: string;
+  measurement: ExerciseMeasurement;
+}
+
 export interface PlannerState {
-  schemaVersion: 2;
+  schemaVersion: 3;
   workouts: Workout[];
   activeSession: Session | null;
   history: Session[];
+  customExercises: CustomExercise[];
 }
 
 export interface ResistanceWorkoutExerciseDraft {
@@ -112,4 +129,8 @@ export type PlannerAction =
   | { type: 'RECORD_SET'; exerciseId: string; setNumber: number; values: Partial<SetResult> }
   | { type: 'FINISH_SESSION' }
   | { type: 'DISCARD_SESSION' }
-  | { type: 'RESET_DATA' };
+  | { type: 'RESET_DATA' }
+  | { type: 'CREATE_CUSTOM_EXERCISE'; draft: CustomExerciseDraft }
+  | { type: 'RENAME_CUSTOM_EXERCISE'; id: string; name: string }
+  | { type: 'RETIRE_CUSTOM_EXERCISE'; id: string }
+  | { type: 'REACTIVATE_CUSTOM_EXERCISE'; id: string };

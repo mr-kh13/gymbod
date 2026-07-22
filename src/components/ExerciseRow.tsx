@@ -1,6 +1,5 @@
-import { EXERCISES } from '../domain/catalog';
 import { defaultDraftForExercise } from '../domain/workouts';
-import type { WorkoutExerciseDraft, ValidationError } from '../domain/types';
+import type { CustomExercise, Exercise, WorkoutExerciseDraft, ValidationError } from '../domain/types';
 
 function errorFor(errors: ValidationError[], field: string): string {
   return errors.find((e) => e.field === field)?.message ?? '';
@@ -12,6 +11,8 @@ interface ExerciseRowProps {
   totalCount: number;
   usedIds: Set<string>;
   errors: ValidationError[];
+  catalogue: readonly Exercise[];
+  customExercises?: CustomExercise[];
   onChange: (index: number, item: WorkoutExerciseDraft) => void;
   onMoveUp: (index: number) => void;
   onMoveDown: (index: number) => void;
@@ -24,6 +25,8 @@ export function ExerciseRow({
   totalCount,
   usedIds,
   errors,
+  catalogue,
+  customExercises = [],
   onChange,
   onMoveUp,
   onMoveDown,
@@ -34,11 +37,11 @@ export function ExerciseRow({
   const errId = (f: string) => `error-exercises-${index}-${f}`;
 
   const handleExerciseChange = (newExerciseId: string) => {
-    const newExercise = EXERCISES.find((e) => e.id === newExerciseId);
-    const oldExercise = EXERCISES.find((e) => e.id === item.exerciseId);
+    const newExercise = catalogue.find((e) => e.id === newExerciseId);
+    const oldExercise = catalogue.find((e) => e.id === item.exerciseId);
 
     if (newExercise?.measurement !== oldExercise?.measurement) {
-      onChange(index, defaultDraftForExercise(newExerciseId, EXERCISES));
+      onChange(index, defaultDraftForExercise(newExerciseId, catalogue));
     } else {
       onChange(index, { ...item, exerciseId: newExerciseId });
     }
@@ -56,7 +59,15 @@ export function ExerciseRow({
           aria-describedby={exerciseError ? errId('exerciseId') : undefined}
           onChange={(e) => handleExerciseChange(e.target.value)}
         >
-          {EXERCISES.map((ex) => (
+          {!catalogue.some((ex) => ex.id === item.exerciseId) && (() => {
+            const retiredName = customExercises.find((e) => e.id === item.exerciseId)?.name ?? item.exerciseId;
+            return (
+              <option key={item.exerciseId} value={item.exerciseId} disabled>
+                {retiredName} [retired]
+              </option>
+            );
+          })()}
+          {catalogue.map((ex) => (
             <option
               key={ex.id}
               value={ex.id}
