@@ -7,6 +7,8 @@ import {
   discardSession,
   historyItems,
   sessionDetail,
+  sessionDurationMs,
+  sessionSummary,
 } from '../../src/domain/sessions';
 import { createDefaultState } from '../../src/domain/storage';
 import type { PlannerState } from '../../src/domain/types';
@@ -162,7 +164,7 @@ describe('historyItems', () => {
     expect(items[0].summary).toEqual({ completedSets: 1, plannedSets: 2 });
   });
 
-  it('retains only the latest 20 completed sessions', () => {
+  it('accumulates all sessions without a cap when called more than 20 times', () => {
     let state = withWorkout();
     for (let i = 0; i < 21; i++) {
       state = startSession(state, 'w1', {
@@ -174,9 +176,46 @@ describe('historyItems', () => {
         now: new Date(Date.UTC(2026, 6, 1, i, 30)).toISOString(),
       }).state;
     }
-    expect(state.history).toHaveLength(20);
+    expect(state.history).toHaveLength(21);
     expect(state.history[0].id).toBe('s20');
-    expect(state.history[state.history.length - 1].id).toBe('s1');
+    expect(state.history[state.history.length - 1].id).toBe('s0');
+  });
+
+  it('returns all sessions when more than 20 are stored', () => {
+    const base = withWorkout();
+    const sessions = Array.from({ length: 21 }, (_, i) => ({
+      id: `s${i}`,
+      workoutId: 'w1',
+      workoutName: 'Push day',
+      startedAt: new Date(Date.UTC(2026, 6, 1, i)).toISOString(),
+      finishedAt: new Date(Date.UTC(2026, 6, 1, i, 30)).toISOString(),
+      status: 'completed' as const,
+      plannedExercises: [] as [],
+      results: [{ exerciseId: 'bench-press', setNumber: 1, completed: true, actualWeightKg: null, actualReps: null }],
+    }));
+    const items = historyItems({ ...base, history: sessions });
+    expect(items).toHaveLength(21);
+    expect(items[0].id).toBe('s20');
+    expect(items[20].id).toBe('s0');
+  });
+
+  it('includes startedAt and durationMs in each returned item', () => {
+    const base = withWorkout();
+    const session = {
+      id: 's1',
+      workoutId: 'w1',
+      workoutName: 'Push day',
+      startedAt: '2026-07-20T09:00:00.000Z',
+      finishedAt: '2026-07-20T10:30:00.000Z',
+      status: 'completed' as const,
+      plannedExercises: [] as [],
+      results: [{ exerciseId: 'bench-press', setNumber: 1, completed: true, actualWeightKg: null, actualReps: null }],
+    };
+    const items = historyItems({ ...base, history: [session] });
+    expect(items[0]).toMatchObject({
+      startedAt: '2026-07-20T09:00:00.000Z',
+      durationMs: 5400000,
+    });
   });
 
   it('returns empty array when no sessions completed', () => {
@@ -193,5 +232,53 @@ describe('sessionDetail', () => {
     detail.results[0].actualWeightKg = 999;
     expect(state.history[0].results[0].actualWeightKg).toBe(80);
     expect(detail.workoutName).toBe('Push day');
+  });
+});
+
+describe('sessionDurationMs', () => {
+  it('returns milliseconds between startedAt and finishedAt', () => {
+    const session = {
+      id: 's1', workoutId: 'w1', workoutName: 'Push day',
+      plannedExercises: [] as [], results: [], status: 'completed' as const,
+      startedAt: '2026-07-20T09:00:00.000Z',
+      finishedAt: '2026-07-20T10:30:00.000Z',
+    };
+    expect(sessionDurationMs(session)).toBe(5400000);
+  });
+
+  it('returns null when finishedAt is absent', () => {
+    const session = {
+      id: 's1', workoutId: 'w1', workoutName: 'Push day',
+      plannedExercises: [] as [], results: [], status: 'active' as const,
+      startedAt: '2026-07-20T09:00:00.000Z',
+    };
+    expect(sessionDurationMs(session)).toBeNull();
+  });
+});
+
+describe('sessionSummary', () => {
+  const makeResults = (flags: boolean[]) =>
+    flags.map((completed, i) => ({
+      exerciseId: 'bench-press', setNumber: i + 1,
+      completed, actualWeightKg: null, actualReps: null,
+    }));
+  const base = {
+    id: 's1', workoutId: 'w1', workoutName: 'Push day',
+    plannedExercises: [] as [], startedAt: '2026-07-20T09:00:00.000Z', status: 'completed' as const,
+  };
+
+  it('reports all sets completed for a fully completed session', () => {
+    expect(sessionSummary({ ...base, results: makeResults([true, true, true]) }))
+      .toEqual({ completedSets: 3, plannedSets: 3 });
+  });
+
+  it('reports partial completion correctly', () => {
+    expect(sessionSummary({ ...base, results: makeResults([true, false, false]) }))
+      .toEqual({ completedSets: 1, plannedSets: 3 });
+  });
+
+  it('reports zero completed sets when none are done', () => {
+    expect(sessionSummary({ ...base, results: makeResults([false, false]) }))
+      .toEqual({ completedSets: 0, plannedSets: 2 });
   });
 });

@@ -39,8 +39,7 @@ function HistoryIndexRoute() {
           <p className="eyebrow">Your history</p>
           <h1>Recent work.</h1>
           <p className="lede">
-            Your latest {items.length} completed {items.length === 1 ? 'session' : 'sessions'},
-            stored only on this device.
+            All your completed sessions, stored only on this device.
           </p>
         </div>
       </section>

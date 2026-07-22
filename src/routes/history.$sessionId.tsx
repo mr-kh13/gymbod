@@ -1,7 +1,7 @@
 import { createRoute, useNavigate } from '@tanstack/react-router';
 import { Route as rootRoute } from './__root';
 import { usePlanner } from '../context/PlannerContext';
-import { sessionDetail } from '../domain/sessions';
+import { sessionDetail, sessionSummary, sessionDurationMs } from '../domain/sessions';
 
 export const Route = createRoute({
   getParentRoute: () => rootRoute,
@@ -14,6 +14,15 @@ function formatDate(value: string): string {
     dateStyle: 'long',
     timeStyle: 'short',
   }).format(new Date(value));
+}
+
+function formatDuration(ms: number): string {
+  const totalMinutes = Math.floor(ms / 60000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours === 0) return `${totalMinutes}m`;
+  if (minutes === 0) return `${hours}h`;
+  return `${hours}h ${minutes}m`;
 }
 
 function SessionDetailRoute() {
@@ -41,8 +50,8 @@ function SessionDetailRoute() {
     );
   }
 
-  const completedSets = session.results.filter((r) => r.completed).length;
-  const plannedSets = session.results.length;
+  const { completedSets, plannedSets } = sessionSummary(session);
+  const durationMs = sessionDurationMs(session);
 
   return (
     <>
@@ -52,6 +61,10 @@ function SessionDetailRoute() {
           <h1>{session.workoutName}</h1>
           <p className="lede">
             {formatDate(session.finishedAt!)} · {completedSets}/{plannedSets} sets completed
+          </p>
+          <p className="session-meta">
+            Started {formatDate(session.startedAt)}
+            {durationMs !== null && <> · <time>{formatDuration(durationMs)}</time></>}
           </p>
         </div>
         <div className="session-actions">

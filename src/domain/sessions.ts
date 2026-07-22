@@ -83,6 +83,11 @@ export function sessionSummary(session: Session): { completedSets: number; plann
   };
 }
 
+export function sessionDurationMs(session: Session): number | null {
+  if (!session.finishedAt) return null;
+  return new Date(session.finishedAt).getTime() - new Date(session.startedAt).getTime();
+}
+
 export function finishSession(
   state: PlannerState,
   options: { now?: string } = {},
@@ -97,7 +102,7 @@ export function finishSession(
     finishedAt: options.now ?? new Date().toISOString(),
   };
   return {
-    state: { ...state, activeSession: null, history: [completed, ...state.history].slice(0, 20) },
+    state: { ...state, activeSession: null, history: [completed, ...state.history] },
     summary,
   };
 }
@@ -110,11 +115,12 @@ export function discardSession(state: PlannerState): PlannerState {
 export function historyItems(state: PlannerState) {
   return [...state.history]
     .sort((a, b) => new Date(b.finishedAt!).getTime() - new Date(a.finishedAt!).getTime())
-    .slice(0, 20)
     .map((session) => ({
       id: session.id,
       workoutName: session.workoutName,
+      startedAt: session.startedAt,
       finishedAt: session.finishedAt!,
+      durationMs: sessionDurationMs(session),
       summary: sessionSummary(session),
     }));
 }
