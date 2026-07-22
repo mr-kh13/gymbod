@@ -1,0 +1,8 @@
+hooks:
+  after_implement:
+    - extension: open-pr
+      command: open-pr
+      description: Open a GitHub pull request once /speckit.implement has completed successfully and the work is ready for review.
+      prompt: Create a pull request for the completed implementation after validating, committing, and pushing the feature branch.
+      optional: false
+      enabled: true
