@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# update-context.sh — Pi Coding Agent integration: create/update AGENTS.md
+# update-context.sh — Claude Code integration: create/update CLAUDE.md
 #
 # Thin wrapper that delegates to the shared update-agent-context script.
 # Activated in Stage 7 when the shared script uses integration.json dispatch.
@@ -25,4 +25,4 @@ if [ -z "${REPO_ROOT:-}" ]; then
   fi
 fi
 
-exec "$REPO_ROOT/.specify/scripts/bash/update-agent-context.sh" pi
+exec "$REPO_ROOT/.specify/scripts/bash/update-agent-context.sh" claude

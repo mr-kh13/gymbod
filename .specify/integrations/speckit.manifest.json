@@ -1,6 +1,9 @@
 {
   "integration": "speckit",
   "version": "0.5.1",
-  "installed_at": "2026-07-22T12:57:24.296041+00:00",
-  "files": {}
+  "installed_at": "2026-07-13T11:20:34.635746+00:00",
+  "files": {
+    ".specify/scripts/powershell/update-agent-context.ps1": "eac4ea87703a29835a3f416354bf29232cb60e81f16776669aa4aa28c23d7fc2",
+    ".specify/templates/agent-file-template.md": "55ed438c2e861444ef22f45fe5238f3ebf0dc1cb6e53067d7232fbbf4ce82892"
+  }
 }
