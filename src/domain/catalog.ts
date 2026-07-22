@@ -1,4 +1,4 @@
-import type { Exercise } from './types';
+import type { CustomExercise, Exercise } from './types';
 
 export const EXERCISES: readonly Exercise[] = Object.freeze([
   { id: 'bench-press', name: 'Bench press', category: 'upper', measurement: 'resistance' },
@@ -17,4 +17,23 @@ export const EXERCISES: readonly Exercise[] = Object.freeze([
 
 export function exerciseById(id: string): Exercise | undefined {
   return EXERCISES.find((e) => e.id === id);
+}
+
+export function activeCatalogue(customExercises: CustomExercise[]): readonly Exercise[] {
+  const active = customExercises
+    .filter((e) => e.status === 'active')
+    .map((e): Exercise => ({ id: e.id, name: e.name, category: 'custom', measurement: e.measurement }));
+  return [...EXERCISES, ...active];
+}
+
+export function findExercise(id: string, customExercises: CustomExercise[]): Exercise | undefined {
+  const predefined = EXERCISES.find((e) => e.id === id);
+  if (predefined) return predefined;
+  const custom = customExercises.find((e) => e.id === id);
+  if (custom) return { id: custom.id, name: custom.name, category: 'custom', measurement: custom.measurement };
+  return undefined;
+}
+
+export function findExerciseName(id: string, customExercises: CustomExercise[]): string {
+  return findExercise(id, customExercises)?.name ?? 'Unknown exercise';
 }

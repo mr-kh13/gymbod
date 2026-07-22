@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { migrateV1toV2 } from '../../src/domain/storage';
+import { migrateV1toV2, migrateV2toV3, createDefaultState } from '../../src/domain/storage';
 import type { PlannerState } from '../../src/domain/types';
+
+interface PlannerStateV2 {
+  schemaVersion: 2;
+  workouts: PlannerState['workouts'];
+  activeSession: PlannerState['activeSession'];
+  history: PlannerState['history'];
+}
 
 interface WorkoutExerciseV1 {
   exerciseId: string;
@@ -166,7 +173,7 @@ describe('migrateV1toV2', () => {
   });
 
   it('schemaVersion 2 state round-trips without migration', () => {
-    const v2State: PlannerState = {
+    const v2State: PlannerStateV2 = {
       schemaVersion: 2,
       workouts: [
         {
@@ -190,5 +197,47 @@ describe('migrateV1toV2', () => {
     };
     // Should NOT call migrateV1toV2 for v2 state
     expect(v2State.schemaVersion).toBe(2);
+  });
+});
+
+describe('migrateV2toV3', () => {
+  it('adds customExercises as empty array and bumps schemaVersion to 3', () => {
+    const v2: PlannerStateV2 = { schemaVersion: 2, workouts: [], activeSession: null, history: [] };
+    const result = migrateV2toV3(v2);
+    expect(result.schemaVersion).toBe(3);
+    expect(result.customExercises).toEqual([]);
+  });
+
+  it('preserves workouts, activeSession, and history', () => {
+    const v2: PlannerStateV2 = {
+      schemaVersion: 2,
+      workouts: [
+        {
+          id: 'w1',
+          name: 'Push day',
+          exercises: [{ kind: 'resistance', exerciseId: 'bench-press', sets: 3, targetReps: 8 }],
+          createdAt: '2026-07-13T10:00:00.000Z',
+          updatedAt: '2026-07-13T10:00:00.000Z',
+        },
+      ],
+      activeSession: null,
+      history: [],
+    };
+    const result = migrateV2toV3(v2);
+    expect(result.workouts).toHaveLength(1);
+    expect(result.workouts[0].name).toBe('Push day');
+    expect(result.activeSession).toBeNull();
+    expect(result.history).toEqual([]);
+  });
+});
+
+describe('createDefaultState', () => {
+  it('returns schemaVersion 3 with empty customExercises', () => {
+    const state = createDefaultState();
+    expect(state.schemaVersion).toBe(3);
+    expect(state.customExercises).toEqual([]);
+    expect(state.workouts).toEqual([]);
+    expect(state.activeSession).toBeNull();
+    expect(state.history).toEqual([]);
   });
 });

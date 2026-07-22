@@ -4,9 +4,10 @@ import { Route as rootRoute } from './__root';
 import { usePlanner } from '../context/PlannerContext';
 import { WorkoutCard } from '../components/WorkoutCard';
 import { WorkoutEditor } from '../components/WorkoutEditor';
+import { CustomExerciseEditor } from '../components/CustomExerciseEditor';
 import type { WorkoutDraft, ValidationError } from '../domain/types';
 import { validateWorkout, defaultDraftForExercise, workoutToDraft } from '../domain/workouts';
-import { EXERCISES } from '../domain/catalog';
+import { EXERCISES, activeCatalogue } from '../domain/catalog';
 
 export const Route = createRoute({
   getParentRoute: () => rootRoute,
@@ -14,19 +15,22 @@ export const Route = createRoute({
   component: PlansRoute,
 });
 
-function newDraft(): WorkoutDraft {
-  return { id: null, name: '', exercises: [defaultDraftForExercise(EXERCISES[0].id, EXERCISES)] };
-}
-
 function PlansRoute() {
   const { state, dispatch } = usePlanner();
   const navigate = useNavigate();
+  const catalogue = activeCatalogue(state.customExercises);
   const [editor, setEditor] = useState<WorkoutDraft | null>(null);
   const [errors, setErrors] = useState<ValidationError[]>([]);
   const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [showExerciseEditor, setShowExerciseEditor] = useState(false);
+
+  function newDraft(): WorkoutDraft {
+    const firstExercise = catalogue[0] ?? EXERCISES[0];
+    return { id: null, name: '', exercises: [defaultDraftForExercise(firstExercise.id, catalogue)] };
+  }
 
   function handleSave(draft: WorkoutDraft) {
-    const errs = validateWorkout(draft);
+    const errs = validateWorkout(draft, catalogue);
     if (errs.length) { setErrors(errs); return; }
     if (draft.id) {
       dispatch({ type: 'UPDATE_WORKOUT', id: draft.id, draft });
@@ -62,28 +66,6 @@ function PlansRoute() {
     } catch (e) { /* ignore */ }
   }
 
-  if (!state.workouts.length && !editor) {
-    return (
-      <>
-        <section className="page-heading">
-          <div>
-            <p className="eyebrow">Local-first training</p>
-            <h1>Plans that get out of your way.</h1>
-            <p className="lede">
-              Build a repeatable session, record the work, and keep momentum on this device.
-            </p>
-          </div>
-        </section>
-        <div className="empty-state panel">
-          <span className="empty-icon" aria-hidden="true">↗</span>
-          <h2>Build your first session</h2>
-          <p>Create a reusable workout once, then take it to the gym without an account or connection.</p>
-          <button type="button" onClick={() => setEditor(newDraft())}>Create workout</button>
-        </div>
-      </>
-    );
-  }
-
   return (
     <>
       <section className="page-heading">
@@ -95,18 +77,45 @@ function PlansRoute() {
           </p>
         </div>
         {!editor && (
-          <button type="button" onClick={() => setEditor(newDraft())}>+ New workout</button>
+          <div>
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => setShowExerciseEditor((v) => !v)}
+            >
+              Manage exercises
+            </button>
+            {state.workouts.length > 0 && (
+              <button type="button" onClick={() => setEditor(newDraft())}>+ New workout</button>
+            )}
+          </div>
         )}
       </section>
+
+      {showExerciseEditor && (
+        <CustomExerciseEditor
+          customExercises={state.customExercises}
+          onAction={dispatch}
+        />
+      )}
 
       {editor ? (
         <WorkoutEditor
           draft={editor}
           errors={errors}
+          catalogue={catalogue}
+          customExercises={state.customExercises}
           onChange={setEditor}
           onSave={handleSave}
           onCancel={() => { setEditor(null); setErrors([]); }}
         />
+      ) : state.workouts.length === 0 ? (
+        <div className="empty-state panel">
+          <span className="empty-icon" aria-hidden="true">↗</span>
+          <h2>Build your first session</h2>
+          <p>Create a reusable workout once, then take it to the gym without an account or connection.</p>
+          <button type="button" onClick={() => setEditor(newDraft())}>Create workout</button>
+        </div>
       ) : (
         <div className="card-grid">
           {state.workouts.map((workout) => (

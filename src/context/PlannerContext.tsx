@@ -18,6 +18,12 @@ import {
   finishSession,
   discardSession,
 } from '../domain/sessions';
+import {
+  createCustomExercise,
+  renameCustomExercise,
+  retireCustomExercise,
+  reactivateCustomExercise,
+} from '../domain/customExercises';
 
 interface PlannerContextValue {
   state: PlannerState;
@@ -52,6 +58,14 @@ function plannerReducer(
       return discardSession(state);
     case 'RESET_DATA':
       return createDefaultState();
+    case 'CREATE_CUSTOM_EXERCISE':
+      return createCustomExercise(state, action.draft).state;
+    case 'RENAME_CUSTOM_EXERCISE':
+      return renameCustomExercise(state, action.id, action.name).state;
+    case 'RETIRE_CUSTOM_EXERCISE':
+      return retireCustomExercise(state, action.id);
+    case 'REACTIVATE_CUSTOM_EXERCISE':
+      return reactivateCustomExercise(state, action.id);
     default:
       return state;
   }

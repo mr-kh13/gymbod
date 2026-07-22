@@ -1,5 +1,5 @@
 import type { PlannerState, Workout, WorkoutDraft, ValidationError, Exercise, WorkoutExerciseDraft } from './types';
-import { EXERCISES, exerciseById } from './catalog';
+import { EXERCISES, exerciseById, activeCatalogue } from './catalog';
 
 const integerInRange = (value: string | number, min: number, max: number): boolean =>
   Number.isInteger(Number(value)) && Number(value) >= min && Number(value) <= max;
@@ -63,7 +63,7 @@ export function createWorkout(
   draft: WorkoutDraft,
   options: { id?: string; now?: string } = {},
 ): { state: PlannerState; workout: Workout | null; errors: ValidationError[] } {
-  const errors = validateWorkout(draft);
+  const errors = validateWorkout(draft, activeCatalogue(state.customExercises));
   if (errors.length) return { state, workout: null, errors };
   const now = options.now ?? new Date().toISOString();
   const workout: Workout = {
@@ -105,7 +105,7 @@ export function updateWorkout(
 ): { state: PlannerState; workout: Workout | null; errors: ValidationError[] } {
   const existing = state.workouts.find((w) => w.id === workoutId);
   if (!existing) throw new Error('Workout not found.');
-  const errors = validateWorkout(draft);
+  const errors = validateWorkout(draft, activeCatalogue(state.customExercises));
   if (errors.length) return { state, workout: null, errors };
   const workout: Workout = {
     ...existing,

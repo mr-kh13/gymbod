@@ -42,6 +42,31 @@ function withWorkout(): PlannerState {
   ).state;
 }
 
+describe('startSession with custom exercise', () => {
+  it('resolves custom exercise name from state.customExercises', () => {
+    const baseState = {
+      ...createDefaultState(),
+      customExercises: [{
+        id: 'custom-1',
+        name: 'Dragon Flag',
+        measurement: 'timed' as const,
+        status: 'active' as const,
+        createdAt: '2026-07-22T10:00:00.000Z',
+        updatedAt: '2026-07-22T10:00:00.000Z',
+      }],
+      workouts: [{
+        id: 'w1',
+        name: 'Core day',
+        exercises: [{ kind: 'timed' as const, exerciseId: 'custom-1', sets: 3, durationSecs: 60 }],
+        createdAt: '2026-07-22T10:00:00.000Z',
+        updatedAt: '2026-07-22T10:00:00.000Z',
+      }],
+    };
+    const started = startSession(baseState, 'w1', { id: 's1' });
+    expect(started.activeSession?.plannedExercises[0].exerciseName).toBe('Dragon Flag');
+  });
+});
+
 describe('startSession', () => {
   it('starts one active session with an immutable workout snapshot', () => {
     const started = startSession(withWorkout(), 'w1', { id: 's1', now: '2026-07-13T11:00:00.000Z' });
